@@ -1,0 +1,724 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "ServerlessDeploymentBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ServerlessDeploymentBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "ServerlessDeploymentBucket"
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:*",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "ServerlessDeploymentBucket"
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": false
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "StartValidStateMachineLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/nucleus-orch-metrics-dev-startValidStateMachine"
+      }
+    },
+    "AlertSupportTeamLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/nucleus-orch-metrics-dev-alertSupportTeam"
+      }
+    },
+    "ReportMetricsLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/nucleus-orch-metrics-dev-reportMetrics"
+      }
+    },
+    "IamRoleLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "nucleus-orch-metrics",
+                  "dev",
+                  "lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:CreateLogGroup"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/nucleus-orch-metrics-dev*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/nucleus-orch-metrics-dev*:*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:GetRecords",
+                    "dynamodb:GetShardIterator",
+                    "dynamodb:DescribeStream",
+                    "dynamodb:ListStreams"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::ImportValue": "orchestrator-dev-status-stream-arn"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/",
+        "RoleName": {
+          "Fn::Join": [
+            "-",
+            [
+              "nucleus-orch-metrics",
+              "dev",
+              {
+                "Ref": "AWS::Region"
+              },
+              "lambdaRole"
+            ]
+          ]
+        }
+      }
+    },
+    "StartValidStateMachineLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/nucleus-orch-metrics/dev/1591659578528-2020-06-08T23:39:38.528Z/nucleus-orch-metrics.zip"
+        },
+        "FunctionName": "nucleus-orch-metrics-dev-startValidStateMachine",
+        "Handler": "src/functions/startValidationStateMachine.handler",
+        "MemorySize": 1024,
+        "Role": {
+          "Fn::GetAtt": [
+            "StartValidStateMachineIamRoleLambdaExecution",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs10.x",
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "epsagonToken": "",
+            "epsagonAppName": "",
+            "epsagonMetadata": "",
+            "notificationArn": {
+              "Ref": "snsTopicFailure"
+            },
+            "metric": "nucleus",
+            "metricNamespace": "orchestrator",
+            "metricsTable": {
+              "Ref": "dynamodbTableMetrics"
+            },
+            "environment": "dev",
+            "WorkflowRegistry": "nucleus-orch-metrics-dev-workflows",
+            "stateMachineArn": {
+              "Ref": "StepFunction"
+            }
+          }
+        }
+      },
+      "DependsOn": [
+        "StartValidStateMachineIamRoleLambdaExecution",
+        "StartValidStateMachineLogGroup"
+      ]
+    },
+    "AlertSupportTeamLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/nucleus-orch-metrics/dev/1591659578528-2020-06-08T23:39:38.528Z/nucleus-orch-metrics.zip"
+        },
+        "FunctionName": "nucleus-orch-metrics-dev-alertSupportTeam",
+        "Handler": "src/functions/alertSupportTeam.handler",
+        "MemorySize": 1024,
+        "Role": {
+          "Fn::GetAtt": [
+            "AlertSupportTeamIamRoleLambdaExecution",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs10.x",
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "epsagonToken": "",
+            "epsagonAppName": "",
+            "epsagonMetadata": "",
+            "notificationArn": {
+              "Ref": "snsTopicFailure"
+            },
+            "metric": "nucleus",
+            "metricNamespace": "orchestrator",
+            "metricsTable": {
+              "Ref": "dynamodbTableMetrics"
+            },
+            "environment": "dev",
+            "WorkflowRegistry": "nucleus-orch-metrics-dev-workflows"
+          }
+        }
+      },
+      "DependsOn": [
+        "AlertSupportTeamIamRoleLambdaExecution",
+        "AlertSupportTeamLogGroup"
+      ]
+    },
+    "ReportMetricsLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/nucleus-orch-metrics/dev/1591659578528-2020-06-08T23:39:38.528Z/nucleus-orch-metrics.zip"
+        },
+        "FunctionName": "nucleus-orch-metrics-dev-reportMetrics",
+        "Handler": "src/functions/reportMetrics.handler",
+        "MemorySize": 1024,
+        "Role": {
+          "Fn::GetAtt": [
+            "ReportMetricsIamRoleLambdaExecution",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs10.x",
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "epsagonToken": "",
+            "epsagonAppName": "",
+            "epsagonMetadata": "",
+            "notificationArn": {
+              "Ref": "snsTopicFailure"
+            },
+            "metric": "nucleus",
+            "metricNamespace": "orchestrator",
+            "metricsTable": {
+              "Ref": "dynamodbTableMetrics"
+            },
+            "environment": "dev",
+            "WorkflowRegistry": "nucleus-orch-metrics-dev-workflows"
+          }
+        }
+      },
+      "DependsOn": [
+        "ReportMetricsIamRoleLambdaExecution",
+        "ReportMetricsLogGroup"
+      ]
+    },
+    "ReportMetricsEventsRuleSchedule1": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "ScheduleExpression": "rate(15 minutes)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "ReportMetricsLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "reportMetricsSchedule"
+          }
+        ]
+      }
+    },
+    "ReportMetricsLambdaPermissionEventsRuleSchedule1": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ReportMetricsLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "ReportMetricsEventsRuleSchedule1",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "StartValidStateMachineEventSourceMappingDynamodbOrchestratordevstatusstreamarn": {
+      "Type": "AWS::Lambda::EventSourceMapping",
+      "DependsOn": "StartValidStateMachineIamRoleLambdaExecution",
+      "Properties": {
+        "BatchSize": 10,
+        "EventSourceArn": {
+          "Fn::ImportValue": "orchestrator-dev-status-stream-arn"
+        },
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "StartValidStateMachineLambdaFunction",
+            "Arn"
+          ]
+        },
+        "StartingPosition": "TRIM_HORIZON",
+        "Enabled": true
+      }
+    },
+    "StartValidStateMachineIamRoleLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "nucleus-orch-metrics",
+                  "dev",
+                  "lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/nucleus-orch-metrics-dev-startValidStateMachine:*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:GetRecords",
+                    "dynamodb:GetShardIterator",
+                    "dynamodb:DescribeStream",
+                    "dynamodb:ListStreams"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::ImportValue": "orchestrator-dev-status-stream-arn"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:PutObject",
+                    "states:StartExecution"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::nucleus-orch-metrics-dev-workflows",
+                    "arn:aws:s3:::nucleus-orch-metrics-dev-workflows/*",
+                    {
+                      "Ref": "StepFunction"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/",
+        "RoleName": "nucleus-orch-metrics-dev-us-west-2-svsm",
+        "ManagedPolicyArns": []
+      }
+    },
+    "AlertSupportTeamIamRoleLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "nucleus-orch-metrics",
+                  "dev",
+                  "lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/nucleus-orch-metrics-dev-alertSupportTeam:*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sns:publish",
+                    "dynamodb:PutItem",
+                    "s3:ListBucket"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "snsTopicFailure"
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "dynamodbTableMetrics",
+                        "Arn"
+                      ]
+                    },
+                    "arn:aws:s3:::nucleus-orch-metrics-dev-workflows",
+                    "arn:aws:s3:::nucleus-orch-metrics-dev-workflows/*"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/",
+        "RoleName": "nucleus-orch-metrics-dev-us-west-2-ast",
+        "ManagedPolicyArns": []
+      }
+    },
+    "ReportMetricsIamRoleLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "nucleus-orch-metrics",
+                  "dev",
+                  "lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/nucleus-orch-metrics-dev-reportMetrics:*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:Scan",
+                    "s3:ListBucket"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::nucleus-orch-metrics-dev-workflows",
+                    "arn:aws:s3:::nucleus-orch-metrics-dev-workflows/*",
+                    {
+                      "Fn::GetAtt": [
+                        "dynamodbTableMetrics",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudwatch:PutMetricData"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/",
+        "RoleName": "nucleus-orch-metrics-dev-us-west-2-rm",
+        "ManagedPolicyArns": []
+      }
+    },
+    "snsTopicFailure": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName": "Policy Issue Failure",
+        "TopicName": "nucleus-orch-metrics-dev-failure"
+      }
+    },
+    "dynamodbTableMetrics": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "uid",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "workflow",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "workflow",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "uid",
+            "KeyType": "RANGE"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "TableName": "nucleus-orch-metrics-dev-failure-metrics",
+        "TimeToLiveSpecification": {
+          "AttributeName": "timeout",
+          "Enabled": true
+        }
+      }
+    },
+    "s3Workflows": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": "nucleus-orch-metrics-dev-workflows",
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        }
+      }
+    },
+    "StepFunctionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "states.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "nucleus-orch-metrics-dev-CustomDataExtractRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction",
+                    "dynamodb:GetItem"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "AlertSupportTeamLambdaFunction",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::ImportValue": "orchestrator-dev-status-arn"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "StepFunction": {
+      "Type": "AWS::StepFunctions::StateMachine",
+      "Properties": {
+        "StateMachineName": "nucleus-orch-metrics-dev",
+        "RoleArn": {
+          "Fn::GetAtt": [
+            "StepFunctionRole",
+            "Arn"
+          ]
+        },
+        "DefinitionString": {
+          "Fn::Sub": [
+            "{\n    \"Comment\": \"This state machine tracks if the bind process completes in a specific period of time\",\n    \"StartAt\": \"WaitForProcessing\",\n    \"States\": {\n        \"WaitForProcessing\": {\n            \"Type\":\"Wait\",\n            \"Seconds\": 900,\n            \"Next\":\"UpdatePolicyStatus\"\n        },\n        \"UpdatePolicyStatus\": {\n            \"Type\":\"Task\",\n            \"Resource\": \"arn:aws:states:::dynamodb:getItem\",\n            \"Parameters\": {\n                \"TableName\":\"${StateTableName}\",\n                \"Key\": {\"uid\":{\"S.$\": \"$.uid\"}, \"workflow\":{\"S.$\": \"$.workflow\"}}\n            },\n            \"ResultPath\":\"$.dynamo\",\n            \"Next\":\"ValidateStatus\",\n            \"Retry\": [\n                {\n                    \"ErrorEquals\": [ \"States.ALL\" ],\n                    \"IntervalSeconds\": 1,\n                    \"BackoffRate\": 2.0\n                }\n            ]\n        },\n        \"ValidateStatus\": {\n            \"Type\":\"Choice\",\n            \"Choices\": [\n                {\n                    \"Variable\": \"$.dynamo.Item.status.M.state.S\",\n                    \"StringEquals\":\"Complete\",\n                    \"Next\": \"End\"\n                }\n            ],\n            \"Default\":\"AlertSupportTeam\"\n        },\n        \"AlertSupportTeam\": {\n            \"Type\":\"Task\",\n            \"Resource\":\"${AlertSupportTeamLambdaFunction.Arn}\",\n            \"Next\":\"WaitForProcessing\",\n            \"Retry\": [\n                {\n                    \"ErrorEquals\": [ \"States.ALL\" ],\n                    \"IntervalSeconds\": 1,\n                    \"BackoffRate\": 2.0\n                }\n            ]\n        },\n        \"End\": {\n            \"Type\":\"Pass\",\n            \"End\":true\n        }\n    }\n}",
+            {
+              "StateTableName": {
+                "Fn::ImportValue": "orchestrator-dev-status-name"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": {
+        "Ref": "ServerlessDeploymentBucket"
+      }
+    }
+  }
+}

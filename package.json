@@ -1,0 +1,24 @@
+{
+    "name": "serverless-plugin-generic-stack",
+    "version": "1.0.0",
+    "main": "src/index.js",
+    "publisher": "Mutual of Enumclaw",
+    "description": "Concatinates files in a directory and turns them into a string which can be used in serverless",
+    "license": "MIT",
+    "scripts": {
+        "build": "",
+        "test": "npx jest"
+    },
+    "keywords": [
+        "serverless",
+        "cat",
+        "concatinate",
+        "files"
+    ],
+    "dependencies": {
+        "glob": "^7.1.4"
+    },
+    "devDependencies": {
+        "jest": "^25.3.0"
+    }
+}
