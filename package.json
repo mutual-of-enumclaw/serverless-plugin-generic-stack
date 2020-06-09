@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "main": "src/index.js",
     "publisher": "Mutual of Enumclaw",
-    "description": "Concatinates files in a directory and turns them into a string which can be used in serverless",
+    "description": "Strips out hard coded stack names from resource naming, allowing resource names to be tied to the stack name",
     "license": "MIT",
     "scripts": {
         "build": "",
@@ -15,10 +15,8 @@
         "concatinate",
         "files"
     ],
-    "dependencies": {
-        "glob": "^7.1.4"
-    },
+    "dependencies": {},
     "devDependencies": {
-        "jest": "^25.3.0"
+        "jest": "^26.0.1"
     }
 }
