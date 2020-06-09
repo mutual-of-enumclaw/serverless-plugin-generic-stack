@@ -52,7 +52,22 @@ class ServerlessPlugin {
             }
         });
 
+        removeDoubleSubs(this.serverless.service.provider.compiledCloudFormationTemplate.Resources);
     }
+}
+
+function removeDoubleSubs(obj) {
+    console.log('Removing doubles');
+    Object.keys(obj).forEach(key => {
+        if(key === "Fn::Sub") {
+            console.log('Fn::Sub');
+            if(obj[key]["Fn::Sub"]) {
+                obj[key] = obj[key]["Fn::Sub"];
+            }
+        } else if(typeof obj[key] === 'object') {
+            removeDoubleSubs(obj[key]);
+        }
+    });
 }
 
 function swapOutHardCodedName(originalName, serviceName, stage) {

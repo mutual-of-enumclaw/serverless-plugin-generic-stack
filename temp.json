@@ -123,9 +123,7 @@
                   ],
                   "Resource": [
                     {
-                      "Fn::Sub": {
-                        "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}*:*"
-                      }
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}*:*"
                     }
                   ]
                 },
@@ -136,9 +134,7 @@
                   ],
                   "Resource": [
                     {
-                      "Fn::Sub": {
-                        "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}*:*:*"
-                      }
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}*:*:*"
                     }
                   ]
                 },
@@ -419,9 +415,7 @@
                   ],
                   "Resource": [
                     {
-                      "Fn::Sub": {
-                        "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-startValidStateMachine:*:*"
-                      }
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-startValidStateMachine:*:*"
                     }
                   ]
                 },
@@ -511,9 +505,7 @@
                   ],
                   "Resource": [
                     {
-                      "Fn::Sub": {
-                        "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-alertSupportTeam:*:*"
-                      }
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-alertSupportTeam:*:*"
                     }
                   ]
                 },
@@ -596,9 +588,7 @@
                   ],
                   "Resource": [
                     {
-                      "Fn::Sub": {
-                        "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-reportMetrics:*:*"
-                      }
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-reportMetrics:*:*"
                     }
                   ]
                 },
