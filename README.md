@@ -1,4 +1,4 @@
-# serverless-plugin-catdir
+# serverless-plugin-generic-stack
 This plugin removes hard-coded values set by the serverless framework and replaces them with a reference to the AWS::StackName reference.  This allows stacks to be made generic and be deployed without requiring a recompile with the serverless framework.
 
 ## Use case
