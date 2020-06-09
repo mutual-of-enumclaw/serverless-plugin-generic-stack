@@ -105,7 +105,9 @@
               "Fn::Join": [
                 "-",
                 [
-                  "{ \"Ref\": \"AWS::StackName\" }",
+                  {
+                    "Ref": "AWS::StackName"
+                  },
                   "lambda"
                 ]
               ]
@@ -163,8 +165,9 @@
           "Fn::Join": [
             "-",
             [
-              "nucleus-orch-metrics",
-              "dev",
+              {
+                "Ref": "AWS::StackName"
+              },
               {
                 "Ref": "AWS::Region"
               },
@@ -398,7 +401,9 @@
               "Fn::Join": [
                 "-",
                 [
-                  "{ \"Ref\": \"AWS::StackName\" }",
+                  {
+                    "Ref": "AWS::StackName"
+                  },
                   "lambda"
                 ]
               ]
@@ -488,7 +493,9 @@
               "Fn::Join": [
                 "-",
                 [
-                  "{ \"Ref\": \"AWS::StackName\" }",
+                  {
+                    "Ref": "AWS::StackName"
+                  },
                   "lambda"
                 ]
               ]
@@ -571,7 +578,9 @@
               "Fn::Join": [
                 "-",
                 [
-                  "{ \"Ref\": \"AWS::StackName\" }",
+                  {
+                    "Ref": "AWS::StackName"
+                  },
                   "lambda"
                 ]
               ]

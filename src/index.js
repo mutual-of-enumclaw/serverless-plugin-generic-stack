@@ -45,25 +45,33 @@ class ServerlessPlugin {
             if(resource.Type == 'AWS::IAM::Role') {
                 const roleProps = resource.Properties;
                 roleProps.Policies.forEach(p => {
-                    if(p.PolicyName && 
-                        p.PolicyName['Fn::Join'] &&
-                        p.PolicyName['Fn::Join'][1]) {
-                        const joinFields = p.PolicyName['Fn::Join'][1]
-                        for(let i = joinFields.length - 1; i >= 0 ; i--) {
-                            const f = joinFields[i];
-                            if(f == serviceName) {
-                                joinFields[i] = '{ "Ref": "AWS::StackName" }';
-                                if(joinFields[i + 1] == stage) {
-                                    joinFields.splice(i + 1, 1);
-                                }
-                            }
-                        }
-                    }
+                    p.PolicyName = swapOutHardCodedName(p.PolicyName, serviceName, stage);
                 });
+
+                roleProps.RoleName = swapOutHardCodedName(roleProps.RoleName, serviceName, stage);
             }
         });
 
     }
+}
+
+function swapOutHardCodedName(originalName, serviceName, stage) {
+    if(originalName && 
+        originalName['Fn::Join'] &&
+        originalName['Fn::Join'][1]) {
+        const joinFields = originalName['Fn::Join'][1]
+        for(let i = joinFields.length - 1; i >= 0 ; i--) {
+            const f = joinFields[i];
+            if(f == serviceName) {
+                joinFields[i] = { "Ref": "AWS::StackName" };
+                if(joinFields[i + 1] == stage) {
+                    joinFields.splice(i + 1, 1);
+                }
+            }
+        }
+    }
+
+    return originalName;
 }
 
 module.exports = ServerlessPlugin
