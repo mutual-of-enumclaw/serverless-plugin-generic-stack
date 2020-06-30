@@ -1,6 +1,6 @@
 {
     "name": "serverless-plugin-generic-stack",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "main": "src/index.js",
     "publisher": "Mutual of Enumclaw",
     "description": "Strips out hard coded stack names from resource naming, allowing resource names to be tied to the stack name",

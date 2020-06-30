@@ -23,9 +23,7 @@ class ServerlessPlugin {
         const stage = this.serverless.service.provider.stage;
         const replaceOriginal = `${serviceName}-${stage}`.replace('/\-/g', '\\-');
         const regex = new RegExp(`"(\\w|\\/|\\*|\\-|\\:|\\$|\\{|\\})*${replaceOriginal}(\\w|\\-|\\/|\\*|\\:)+"`, "g");
-        console.log(replaceOriginal);
         const matches = cft.match(regex);
-        console.log(matches);
         if(matches) {
             this.serverless.cli.log(`Retrieved matches ` + matches.length);
             for(let match of matches) {
@@ -44,9 +42,11 @@ class ServerlessPlugin {
             const resource = this.serverless.service.provider.compiledCloudFormationTemplate.Resources[k];
             if(resource.Type == 'AWS::IAM::Role') {
                 const roleProps = resource.Properties;
-                roleProps.Policies.forEach(p => {
-                    p.PolicyName = swapOutHardCodedName(p.PolicyName, serviceName, stage);
-                });
+                if(roleProps.Policies) {
+                    roleProps.Policies.forEach(p => {
+                        p.PolicyName = swapOutHardCodedName(p.PolicyName, serviceName, stage);
+                    });    
+                }
 
                 roleProps.RoleName = swapOutHardCodedName(roleProps.RoleName, serviceName, stage);
             }
@@ -57,10 +57,8 @@ class ServerlessPlugin {
 }
 
 function removeDoubleSubs(obj) {
-    console.log('Removing doubles');
     Object.keys(obj).forEach(key => {
         if(key === "Fn::Sub") {
-            console.log('Fn::Sub');
             if(obj[key]["Fn::Sub"]) {
                 obj[key] = obj[key]["Fn::Sub"];
             }
